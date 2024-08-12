@@ -4,7 +4,8 @@ pragma solidity 0.8.20;
 /**
  * IMPORTS
  */
-
+import {IAccount} from "account-abstraction/contracts/interfaces/IAccount.sol";
+import {PackedUserOperation} from "account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 /**
  * INTERFACES
  */
@@ -16,9 +17,9 @@ pragma solidity 0.8.20;
 /**
  * @title
  * @author Nadina Oates
- * @notice
+ * @notice ERC-4337
  */
-contract Contract {
+contract MinimalAccount is IAccount {
     /**
      * TYPES
      */
@@ -51,6 +52,10 @@ contract Contract {
     /**
      * EXTERNAL
      */
+    function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
+        external
+        returns (uint256 validationData)
+    {}
 
     /**
      * PUBLIC

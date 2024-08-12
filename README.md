@@ -11,7 +11,10 @@
 
 
 ## About
-Project Description
+1. Create a basic account abstraction contract on Ethereum
+2. Create a basic account abstraction contract on ZkSync
+3. Deploy, and send a suerOp / transaction through them (only ZkSync)
+
 
 ## Installation
 
