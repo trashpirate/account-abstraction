@@ -17,6 +17,7 @@ contract HelperConfig is Script {
     uint256 constant LOCAL_CHAIN_ID = 31337;
 
     address constant WALLET = 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF;
+    address constant ANVIL_DEFAULT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     // chain configurations
     NetworkConfig public activeNetworkConfig;
@@ -60,5 +61,7 @@ contract HelperConfig is Script {
         if (activeNetworkConfig.account != address(0)) {
             return activeNetworkConfig;
         }
+
+        return NetworkConfig({entryPoint: address(0), account: ANVIL_DEFAULT});
     }
 }
