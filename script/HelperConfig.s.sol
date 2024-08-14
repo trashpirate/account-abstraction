@@ -4,42 +4,61 @@ pragma solidity 0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 
 contract HelperConfig is Script {
+    // types
+    struct NetworkConfig {
+        address entryPoint;
+        address account;
+    }
+
     // helpers
     uint256 constant CONSTANT = 0;
+    uint256 constant ETH_SEPOLIA_CHAIN_ID = 111555111;
+    uint256 constant ZKSYNC_SEPOLIA_CHAIN_ID = 300;
+    uint256 constant LOCAL_CHAIN_ID = 31337;
+
+    address constant WALLET = 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF;
 
     // chain configurations
     NetworkConfig public activeNetworkConfig;
+    mapping(uint256 chainId => NetworkConfig) public networkConfigs;
+
+    // errors
+    error HelperConfig__InvalidChainId();
 
     function getActiveNetworkConfig() public view returns (NetworkConfig memory) {
         return activeNetworkConfig;
     }
 
-    struct NetworkConfig {
-        address initialOwner;
+    constructor() {
+        networkConfigs[ETH_SEPOLIA_CHAIN_ID] = getEthSepoliaConfig();
+        networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncSepoliaConfig();
     }
 
-    constructor() {
-        if (block.chainid == 8453 || block.chainid == 123) {
-            activeNetworkConfig = getMainnetConfig();
-        } else if (block.chainid == 84532 || block.chainid == 84531) {
-            activeNetworkConfig = getTestnetConfig();
+    function getConfig() public view returns (NetworkConfig memory) {
+        return getConfigByChainId(block.chainid);
+    }
+
+    function getConfigByChainId(uint256 chainId) public view returns (NetworkConfig memory) {
+        if (block.chainid == LOCAL_CHAIN_ID) {
+            return getAnvilConfig();
+        } else if (networkConfigs[chainId].account != address(0)) {
+            return networkConfigs[chainId];
         } else {
-            activeNetworkConfig = getAnvilConfig();
+            revert HelperConfig__InvalidChainId();
         }
     }
 
-    function getTestnetConfig() public pure returns (NetworkConfig memory) {
-        return NetworkConfig({initialOwner: 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF});
+    function getEthSepoliaConfig() public pure returns (NetworkConfig memory) {
+        return NetworkConfig({entryPoint: 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF, account: WALLET});
     }
 
-    function getMainnetConfig() public pure returns (NetworkConfig memory) {
-        return NetworkConfig({initialOwner: 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF});
+    function getZkSyncSepoliaConfig() public pure returns (NetworkConfig memory) {
+        return NetworkConfig({entryPoint: address(0), account: WALLET});
     }
 
-    function getAnvilConfig() public pure returns (NetworkConfig memory) {
-        // vm.startBroadcast();
-        // vm.stopBroadcast();
-
-        return NetworkConfig({initialOwner: 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF});
+    function getAnvilConfig() public view returns (NetworkConfig memory) {
+        if (activeNetworkConfig.account != address(0)) {
+            return activeNetworkConfig;
+        }
     }
 }
