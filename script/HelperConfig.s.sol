@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
+import {EntryPoint} from "account-abstraction/contracts/core/EntryPoint.sol";
 
 contract HelperConfig is Script {
     // types
@@ -35,11 +36,11 @@ contract HelperConfig is Script {
         networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncSepoliaConfig();
     }
 
-    function getConfig() public view returns (NetworkConfig memory) {
+    function getConfig() public returns (NetworkConfig memory) {
         return getConfigByChainId(block.chainid);
     }
 
-    function getConfigByChainId(uint256 chainId) public view returns (NetworkConfig memory) {
+    function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
         if (block.chainid == LOCAL_CHAIN_ID) {
             return getAnvilConfig();
         } else if (networkConfigs[chainId].account != address(0)) {
@@ -57,11 +58,17 @@ contract HelperConfig is Script {
         return NetworkConfig({entryPoint: address(0), account: WALLET});
     }
 
-    function getAnvilConfig() public view returns (NetworkConfig memory) {
+    function getAnvilConfig() public returns (NetworkConfig memory) {
         if (activeNetworkConfig.account != address(0)) {
             return activeNetworkConfig;
         }
 
-        return NetworkConfig({entryPoint: address(0), account: ANVIL_DEFAULT});
+        // deploy mocks
+        console.log("Deploying mocks...");
+        vm.startBroadcast(ANVIL_DEFAULT);
+        EntryPoint entryPoint = new EntryPoint();
+        vm.stopBroadcast();
+
+        return NetworkConfig({entryPoint: address(entryPoint), account: ANVIL_DEFAULT});
     }
 }

@@ -7,7 +7,6 @@ optimizer = true
 optimizer_rounds = 200
 fs_permissions = [{ access = "read", path = "./broadcast" }]
 
-
 [fuzz]
 runs = 10000
 
