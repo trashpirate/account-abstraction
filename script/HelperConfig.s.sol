@@ -3,34 +3,37 @@ pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {EntryPoint} from "account-abstraction/contracts/core/EntryPoint.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract HelperConfig is Script {
-    // types
+    /*//////////////////////////////////////////////////////////////
+                                 TYPES
+    //////////////////////////////////////////////////////////////*/
     struct NetworkConfig {
         address entryPoint;
         address account;
+        address usdc;
     }
 
-    // helpers
-    uint256 constant CONSTANT = 0;
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
     uint256 constant ETH_SEPOLIA_CHAIN_ID = 111555111;
     uint256 constant ZKSYNC_SEPOLIA_CHAIN_ID = 300;
     uint256 constant LOCAL_CHAIN_ID = 31337;
-
-    address constant WALLET = 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF;
-    address constant ANVIL_DEFAULT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     // chain configurations
     NetworkConfig public activeNetworkConfig;
     mapping(uint256 chainId => NetworkConfig) public networkConfigs;
 
-    // errors
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
     error HelperConfig__InvalidChainId();
 
-    function getActiveNetworkConfig() public view returns (NetworkConfig memory) {
-        return activeNetworkConfig;
-    }
-
+    /*//////////////////////////////////////////////////////////////
+                               FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
     constructor() {
         networkConfigs[ETH_SEPOLIA_CHAIN_ID] = getEthSepoliaConfig();
         networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncSepoliaConfig();
@@ -50,12 +53,24 @@ contract HelperConfig is Script {
         }
     }
 
-    function getEthSepoliaConfig() public pure returns (NetworkConfig memory) {
-        return NetworkConfig({entryPoint: 0x7Bb8be3D9015682d7AC0Ea377dC0c92B0ba152eF, account: WALLET});
+    /*//////////////////////////////////////////////////////////////
+                                CONFIGS
+    //////////////////////////////////////////////////////////////*/
+
+    function getEthSepoliaConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            entryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789,
+            account: vm.envAddress("TEST_WALLET"),
+            usdc: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+        });
     }
 
-    function getZkSyncSepoliaConfig() public pure returns (NetworkConfig memory) {
-        return NetworkConfig({entryPoint: address(0), account: WALLET});
+    function getZkSyncSepoliaConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            entryPoint: address(0),
+            account: vm.envAddress("TEST_WALLET"),
+            usdc: 0xAe045DE5638162fa134807Cb558E15A3F5A7F853
+        });
     }
 
     function getAnvilConfig() public returns (NetworkConfig memory) {
@@ -65,10 +80,17 @@ contract HelperConfig is Script {
 
         // deploy mocks
         console.log("Deploying mocks...");
-        vm.startBroadcast(ANVIL_DEFAULT);
+        vm.startBroadcast(vm.envAddress("ANVIL_DEFAULT_ACCOUNT"));
         EntryPoint entryPoint = new EntryPoint();
+        ERC20Mock usdc = new ERC20Mock();
         vm.stopBroadcast();
+        console.log("Mocks deployed.");
 
-        return NetworkConfig({entryPoint: address(entryPoint), account: ANVIL_DEFAULT});
+        activeNetworkConfig = NetworkConfig({
+            entryPoint: address(entryPoint),
+            account: vm.envAddress("ANVIL_DEFAULT_ACCOUNT"),
+            usdc: address(usdc)
+        });
+        return activeNetworkConfig;
     }
 }
