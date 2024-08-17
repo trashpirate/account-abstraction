@@ -24,6 +24,7 @@ build:; forge build
 
 # test
 test :; forge test 
+test-local :; forge test --rpc-url $(RPC_LOCALHOST) -vvv
 
 # test coverage
 coverage:; @forge coverage --contracts src
@@ -39,20 +40,41 @@ format :; forge fmt
 anvil :; anvil -m 'test test test test test test test test test test test junk' --steps-tracing --block-time 1
 
 # spin up fork
-fork :; @anvil --fork-url ${RPC_MAIN} --fork-block-number <blocknumber> --fork-chain-id <fork id> --chain-id <custom id>
+fork :; @anvil --fork-url ${RPC_ETH_MAIN} --fork-block-number 20544360 --fork-chain-id 1 --chain-id 1234
 
 # security
 slither :; slither ./src 
 
 # deployment
 deploy-local: 
-	@forge script script/Deploy.s.sol:Deploy --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast 
+	@forge script script/DeployMinimalAccount.s.sol:DeployMinimalAccount --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast 
 
-deploy: 
-	@forge script script/Deploy.s.sol:Deploy --rpc-url $(RPC_TEST) --account ${ACCOUNT_NAME} --sender ${ACCOUNT_ADDRESS} --broadcast --verify --etherscan-api-key ${ETHERSCAN_API_KEY} -vvvv
+deploy-arb-sepolia: 
+	@forge script script/DeployMinimalAccount.s.sol:DeployMinimalAccount --rpc-url $(RPC_ARB_SEPOLIA) --account ${ACCOUNT_NAME} --sender ${ACCOUNT_ADDRESS} --broadcast --verify --etherscan-api-key ${ARBISCAN_API_KEY} -vvvv
+
+deploy-arb-mainnet: 
+	@forge script script/DeployMinimalAccount.s.sol:DeployMinimalAccount --rpc-url $(RPC_ARB_MAIN) --account ${ACCOUNT_NAME} --sender ${ACCOUNT_ADDRESS} --broadcast --verify --etherscan-api-key ${ARBISCAN_API_KEY} -vvvv
+
+senduserops-arb-mainnet:
+	@forge script script/SendPackedUserOp.s.sol:SendPackedUserOp --rpc-url $(RPC_ARB_MAIN) --account Test-Account1 --broadcast
+
+# verification
+verify-contract:
+	@args=$$(cast abi-encode "constructor(address)" 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789); \
+	forge verify-contract \
+	--chain-id 42161 \
+	--watch \
+	--constructor-args $$args \
+	--etherscan-api-key ${ARBISCAN_API_KEY} \
+	--compiler-version v0.8.24+commit.e11b9ed9 \
+	0x002FE7559d53a843b127d1f964bc13C38f0d3AD7 \
+	src/ethereum/MinimalAccount.sol:MinimalAccount;
 
 # command line interaction
 contract-call:
 	@cast call <contract address> "FunctionSignature(params)(returns)" arguments --rpc-url ${<RPC>}
+
+
+
 
 -include ${FCT_PLUGIN_PATH}/makefile-external

@@ -9,19 +9,23 @@ import {IEntryPoint} from "account-abstraction/contracts/interfaces/IEntryPoint.
 import {EntryPoint} from "account-abstraction/contracts/core/EntryPoint.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 
 contract SendPackedUserOp is Script {
     using MessageHashUtils for bytes32;
+
+    address public constant RANDOM_APPROVER = 0x9EA9b0cc1919def1A3CfAEF4F7A66eE3c36F86fC;
 
     function run() public {
         HelperConfig helperConfig = new HelperConfig();
         address dest = helperConfig.getConfig().usdc;
         uint256 value = 0;
-        bytes memory funcionData =
-            abi.encodeWithSelector(IERC20.approve.selector, helperConfig.getConfig().account, 1e18);
+        address minimalAccountAddress = DevOpsTools.get_most_recent_deployment("MinimalAccount", block.chainid);
+
+        bytes memory funcionData = abi.encodeWithSelector(IERC20.approve.selector, RANDOM_APPROVER, 1e18);
         bytes memory executeCalldata = abi.encodeWithSelector(MinimalAccount.execute.selector, dest, value, funcionData);
         PackedUserOperation memory userOp =
-            generateSignedUserOperation(executeCalldata, helperConfig.getConfig(), helperConfig.getConfig().account);
+            generateSignedUserOperation(executeCalldata, helperConfig.getConfig(), minimalAccountAddress);
         PackedUserOperation[] memory ops = new PackedUserOperation[](1);
         ops[0] = userOp;
 
@@ -36,8 +40,7 @@ contract SendPackedUserOp is Script {
         address minimalAccount
     ) public view returns (PackedUserOperation memory) {
         // 1. Generate unsigned data
-
-        uint256 nonce = vm.getNonce(minimalAccount) - 1;
+        uint256 nonce = IEntryPoint(config.entryPoint).getNonce(minimalAccount, 0);
         PackedUserOperation memory userOp = _generateUnsignedUserOperation(callData, minimalAccount, nonce);
 
         // 2. Get user OpHash
@@ -61,8 +64,7 @@ contract SendPackedUserOp is Script {
         address minimalAccount
     ) public view returns (PackedUserOperation memory) {
         // 1. Generate unsigned data
-
-        uint256 nonce = vm.getNonce(minimalAccount) - 1;
+        uint256 nonce = IEntryPoint(config.entryPoint).getNonce(minimalAccount, 0);
         PackedUserOperation memory userOp = _generateUnsignedUserOperation(callData, minimalAccount, nonce);
 
         // 2. Get user OpHash

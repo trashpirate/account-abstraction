@@ -19,8 +19,13 @@ contract HelperConfig is Script {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     uint256 constant ETH_SEPOLIA_CHAIN_ID = 111555111;
+    uint256 constant ETH_MAINNET_CHAIN_ID = 1;
+    uint256 constant ARB_SEPOLIA_CHAIN_ID = 421614;
+    uint256 constant ARB_MAINNET_CHAIN_ID = 42161;
     uint256 constant ZKSYNC_SEPOLIA_CHAIN_ID = 300;
+    uint256 constant ZKSYNC_MAINNET_CHAIN_ID = 324;
     uint256 constant LOCAL_CHAIN_ID = 31337;
+    uint256 constant FORK_CHAIN_ID = 1234;
 
     // chain configurations
     NetworkConfig public activeNetworkConfig;
@@ -36,7 +41,12 @@ contract HelperConfig is Script {
     //////////////////////////////////////////////////////////////*/
     constructor() {
         networkConfigs[ETH_SEPOLIA_CHAIN_ID] = getEthSepoliaConfig();
+        networkConfigs[ETH_MAINNET_CHAIN_ID] = getEthMainnetConfig();
+        networkConfigs[ARB_SEPOLIA_CHAIN_ID] = getArbSepoliaConfig();
+        networkConfigs[ARB_MAINNET_CHAIN_ID] = getArbMainnetConfig();
         networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncSepoliaConfig();
+        networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncMainnetConfig();
+        networkConfigs[FORK_CHAIN_ID] = getEthMainnetConfig();
     }
 
     function getConfig() public returns (NetworkConfig memory) {
@@ -65,11 +75,43 @@ contract HelperConfig is Script {
         });
     }
 
+    function getEthMainnetConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032,
+            account: vm.envAddress("TEST_WALLET"),
+            usdc: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+        });
+    }
+
+    function getArbSepoliaConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032,
+            account: vm.envAddress("TEST_WALLET"),
+            usdc: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d
+        });
+    }
+
+    function getArbMainnetConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032,
+            account: vm.envAddress("TEST_WALLET"),
+            usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+        });
+    }
+
     function getZkSyncSepoliaConfig() public view returns (NetworkConfig memory) {
         return NetworkConfig({
             entryPoint: address(0),
             account: vm.envAddress("TEST_WALLET"),
             usdc: 0xAe045DE5638162fa134807Cb558E15A3F5A7F853
+        });
+    }
+
+    function getZkSyncMainnetConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            entryPoint: address(0),
+            account: vm.envAddress("TEST_WALLET"),
+            usdc: 0x80b5E2393E14c91554e9CCC9FB43cD948957FfBF
         });
     }
 

@@ -60,20 +60,22 @@ $ forge test
 ### Deploy contract on testnet
 
 ```bash
-$ make deploy-testnet
+$ make deploy-arb-sepolia
 ```
 
 ### Deploy contract on mainnet
 
 ```bash
-$ make deploy-mainnet
+$ make deploy-arb-mainnet
 ```
 
 ## Deployments
 
 ### Testnet
+https://sepolia.arbiscan.io/address/0x6ac50f54ae891746c4c4ef7e9f46f0b293fd8989
 
 ### Mainnet
+https://arbiscan.io/address/0xdcdf94053c9fcfe5bb7525c060b47bbc6d166ce3
 
 ## Contributing
 
