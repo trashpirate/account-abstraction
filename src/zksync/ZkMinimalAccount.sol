@@ -1,16 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+/*//////////////////////////////////////////////////////////////
+                                IMPORTS
+//////////////////////////////////////////////////////////////*/
+
+// Foundry Era Imports
 import {IAccount, ACCOUNT_VALIDATION_SUCCESS_MAGIC} from "foundry-era-contracts/contracts/interfaces/IAccount.sol";
 import {
     Transaction, MemoryTransactionHelper
 } from "foundry-era-contracts/contracts/libraries/MemoryTransactionHelper.sol";
 import {SystemContractsCaller} from "foundry-era-contracts/contracts/libraries/SystemContractsCaller.sol";
-import {NONCE_HOLDER_SYSTEM_CONTRACT, BOOTLOADER_FORMAL_ADDRESS} from "foundry-era-contracts/contracts/Constants.sol";
+import {
+    NONCE_HOLDER_SYSTEM_CONTRACT,
+    BOOTLOADER_FORMAL_ADDRESS,
+    DEPLOYER_SYSTEM_CONTRACT
+} from "foundry-era-contracts/contracts/Constants.sol";
 import {INonceHolder} from "foundry-era-contracts/contracts/interfaces/INonceHolder.sol";
+import {Utils} from "foundry-era-contracts/contracts/libraries/Utils.sol";
+
+// OpenZeppelin Imports
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+/*//////////////////////////////////////////////////////////////
+                                CONTRACT
+//////////////////////////////////////////////////////////////*/
 
 /**
  * @title ZkMinimalAccount
@@ -24,6 +40,9 @@ contract ZkMinimalAccount is IAccount, Ownable {
     //////////////////////////////////////////////////////////////*/
     error ZkMinimalAccount__InsufficientBalance();
     error ZkMinimalAccount__NotFromBootLoader();
+    error ZkMinimalAccount__NotFromBootLoaderOrOwner();
+    error ZkMinimalAccount__ExecutionFailed();
+    error ZkMinimalAccount__FailedToPay();
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -36,7 +55,16 @@ contract ZkMinimalAccount is IAccount, Ownable {
         _;
     }
 
+    modifier requireFromBootLoaderOrOwner() {
+        if (msg.sender != BOOTLOADER_FORMAL_ADDRESS && msg.sender != owner()) {
+            revert ZkMinimalAccount__NotFromBootLoaderOrOwner();
+        }
+        _;
+    }
+
     constructor() Ownable(msg.sender) {}
+
+    receive() external payable {}
 
     /*//////////////////////////////////////////////////////////////
                            EXTERNAL FUNCTIONS
@@ -52,6 +80,42 @@ contract ZkMinimalAccount is IAccount, Ownable {
         payable
         returns (bytes4 magic)
     {
+        return _validateTransaction(_transaction);
+    }
+
+    function executeTransaction(bytes32, /*_txHash*/ bytes32, /*_suggestedSignedHash*/ Transaction memory _transaction)
+        external
+        payable
+        requireFromBootLoaderOrOwner
+    {
+        _executeTransaction(_transaction);
+    }
+
+    function executeTransactionFromOutside(Transaction memory _transaction) external payable {
+        _validateTransaction(_transaction);
+        _executeTransaction(_transaction);
+    }
+
+    function payForTransaction(bytes32, /*_txHash*/ bytes32, /*_suggestedSignedHash*/ Transaction memory _transaction)
+        external
+        payable
+    {
+        bool success = _transaction.payToTheBootloader();
+        if (!success) {
+            revert ZkMinimalAccount__FailedToPay();
+        }
+    }
+
+    function prepareForPaymaster(bytes32 _txHash, bytes32 _possibleSignedHash, Transaction memory _transaction)
+        external
+        payable
+    {}
+
+    /*//////////////////////////////////////////////////////////////
+                           INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _validateTransaction(Transaction memory _transaction) internal returns (bytes4 magic) {
         // system call simulation (will be transformed into a system call)
         SystemContractsCaller.systemCallWithPropagatedRevert(
             uint32(gasleft()),
@@ -82,24 +146,23 @@ contract ZkMinimalAccount is IAccount, Ownable {
         return magic;
     }
 
-    function executeTransaction(bytes32 _txHash, bytes32 _suggestedSignedHash, Transaction memory _transaction)
-        external
-        payable
-    {}
+    function _executeTransaction(Transaction memory _transaction) internal {
+        address to = address(uint160(_transaction.to));
+        uint128 value = Utils.safeCastToU128(_transaction.value);
+        bytes memory data = _transaction.data;
 
-    function executeTransactionFromOutside(Transaction memory _transaction) external payable {}
+        if (to == address(DEPLOYER_SYSTEM_CONTRACT)) {
+            uint32 gas = Utils.safeCastToU32(gasleft());
+            SystemContractsCaller.systemCallWithPropagatedRevert(gas, to, value, data);
+        } else {
+            bool success;
+            assembly {
+                success := call(gas(), to, value, add(data, 0x20), mload(data), 0, 0)
+            }
 
-    function payForTransaction(bytes32 _txHash, bytes32 _suggestedSignedHash, Transaction memory _transaction)
-        external
-        payable
-    {}
-
-    function prepareForPaymaster(bytes32 _txHash, bytes32 _possibleSignedHash, Transaction memory _transaction)
-        external
-        payable
-    {}
-
-    /*//////////////////////////////////////////////////////////////
-                           INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
+            if (!success) {
+                revert ZkMinimalAccount__ExecutionFailed();
+            }
+        }
+    }
 }
