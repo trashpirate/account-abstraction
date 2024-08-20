@@ -45,6 +45,11 @@ fork :; @anvil --fork-url ${RPC_ETH_MAIN} --fork-block-number 20544360 --fork-ch
 # security
 slither :; slither ./src 
 
+# test
+test :; @forge test
+
+test-zksync :; @forge test --zksync --system-mode=true
+
 # deployment
 deploy-local: 
 	@forge script script/DeployMinimalAccount.s.sol:DeployMinimalAccount --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast 

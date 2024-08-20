@@ -5,14 +5,20 @@ import {Test, console} from "forge-std/Test.sol";
 import {MinimalAccount} from "src/ethereum/MinimalAccount.sol";
 import {DeployMinimalAccount} from "script/DeployMinimalAccount.s.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {SendPackedUserOp, PackedUserOperation} from "script/SendPackedUserOp.s.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {IEntryPoint} from "account-abstraction/contracts/interfaces/IEntryPoint.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {HelperConfig} from "script/HelperConfig.s.sol";
 
-contract MinimalAccountTest is Test {
+// foundry devops imports
+import {ZkSyncChainChecker} from "foundry-devops/src/ZkSyncChainChecker.sol";
+
+// openzeppelin imports
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
+// account abstraction imports
+import {IEntryPoint} from "account-abstraction/contracts/interfaces/IEntryPoint.sol";
+
+contract MinimalAccountTest is Test, ZkSyncChainChecker {
     using MessageHashUtils for bytes32;
 
     HelperConfig helperConfig;
@@ -25,7 +31,7 @@ contract MinimalAccountTest is Test {
 
     address payable RANDOM_USER = payable(makeAddr("random-user"));
 
-    function setUp() external virtual {
+    function setUp() external skipZkSync {
         DeployMinimalAccount deployMinimalAccount = new DeployMinimalAccount();
         (helperConfig, minimalAccount) = deployMinimalAccount.deployMinimalAccount();
 
@@ -37,7 +43,7 @@ contract MinimalAccountTest is Test {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    function test__Constructor() public {
+    function test__Constructor() public skipZkSync {
         // Arrange
         address entryPoint = makeAddr("entry-point");
 
@@ -51,7 +57,7 @@ contract MinimalAccountTest is Test {
                                  GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    function test__Getters() public {
+    function test__Getters() public skipZkSync {
         // Arrange
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
 
@@ -72,7 +78,7 @@ contract MinimalAccountTest is Test {
     /// USDC contract
     /// come from the Entry Point
 
-    function test__OwnerCanExecuteCommands() public {
+    function test__OwnerCanExecuteCommands() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -88,7 +94,7 @@ contract MinimalAccountTest is Test {
         assertEq(usdc.balanceOf(address(minimalAccount)), AMOUNT);
     }
 
-    function test__Revert__NotOwnerCannotExecuteCommands() public {
+    function test__Revert__NotOwnerCannotExecuteCommands() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -102,7 +108,7 @@ contract MinimalAccountTest is Test {
         minimalAccount.execute(dest, value, functionData);
     }
 
-    function test__Revert__CallFails() public {
+    function test__Revert__CallFails() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -122,7 +128,7 @@ contract MinimalAccountTest is Test {
                              SIGN OPERATION
     //////////////////////////////////////////////////////////////*/
 
-    function test__RecoverSignedOps() public {
+    function test__RecoverSignedOps() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -142,7 +148,7 @@ contract MinimalAccountTest is Test {
         assertEq(actualSigner, minimalAccount.owner());
     }
 
-    function test__Revert__CannotRecoverSignedByRandomOps() public {
+    function test__Revert__CannotRecoverSignedByRandomOps() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -168,7 +174,7 @@ contract MinimalAccountTest is Test {
     // 1. Sign user op
     // 2. Call validate user op
     // 3. Check if the user op is valid
-    function test__ValidationUserOpsSuccessful() public {
+    function test__ValidationUserOpsSuccessful() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -189,7 +195,7 @@ contract MinimalAccountTest is Test {
         assertEq(validationData, 0);
     }
 
-    function test__ValidationUserOpsFails() public {
+    function test__ValidationUserOpsFails() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -210,7 +216,7 @@ contract MinimalAccountTest is Test {
         assertEq(validationData, 1);
     }
 
-    function test__ValidationUserOpsWithRefund() public {
+    function test__ValidationUserOpsWithRefund() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -233,7 +239,7 @@ contract MinimalAccountTest is Test {
         assertEq(validationData, 0);
     }
 
-    function test__Revert__ValidationUserOpsWithInsufficientFunds() public {
+    function test__Revert__ValidationUserOpsWithInsufficientFunds() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -258,7 +264,7 @@ contract MinimalAccountTest is Test {
         assertEq(validationData, 0);
     }
 
-    function test__Revert__ValidationUserOpsWithFailedPrefund() public {
+    function test__Revert__ValidationUserOpsWithFailedPrefund() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -286,7 +292,7 @@ contract MinimalAccountTest is Test {
         assertEq(validationData, 0);
     }
 
-    function test__Revert__CannotValidateUserOpsIfNotEntryPoint() public {
+    function test__Revert__CannotValidateUserOpsIfNotEntryPoint() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -311,7 +317,7 @@ contract MinimalAccountTest is Test {
     /*//////////////////////////////////////////////////////////////
                       ENTRY POINT CAN EXECUTE
     //////////////////////////////////////////////////////////////*/
-    function test__EntryPointCanExectueCommands() public {
+    function test__EntryPointCanExectueCommands() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);
@@ -336,7 +342,7 @@ contract MinimalAccountTest is Test {
         assertEq(usdc.balanceOf(address(minimalAccount)), AMOUNT);
     }
 
-    function test__Revert__EntryPointCannotExectueUnsignedCommands() public {
+    function test__Revert__EntryPointCannotExectueUnsignedCommands() public skipZkSync {
         // Arrange
         assertEq(usdc.balanceOf(address(minimalAccount)), 0);
         address dest = address(usdc);

@@ -4,5 +4,5 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.24"
 fs_permissions = [{ access = "read", path = "./broadcast" }]
-is-system = true
+is-system = true # needs to be called in command line --system-mode=true
 via-ir = true

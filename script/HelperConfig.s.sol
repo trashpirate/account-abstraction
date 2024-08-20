@@ -45,7 +45,7 @@ contract HelperConfig is Script {
         networkConfigs[ARB_SEPOLIA_CHAIN_ID] = getArbSepoliaConfig();
         networkConfigs[ARB_MAINNET_CHAIN_ID] = getArbMainnetConfig();
         networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncSepoliaConfig();
-        networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncMainnetConfig();
+        networkConfigs[ZKSYNC_MAINNET_CHAIN_ID] = getZkSyncMainnetConfig();
         networkConfigs[FORK_CHAIN_ID] = getEthMainnetConfig();
     }
 
